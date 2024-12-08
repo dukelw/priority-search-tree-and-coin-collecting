@@ -63,6 +63,48 @@ def PSTSearch(x1, x2, y1, node):
     return result
 
 
+def PSTSearchLeft(x1, y1, y2, node):
+    if node is None:
+        return []
+
+    result = []
+    # Check condition y1 <= y <= y2
+    if y1 <= node.point[1] <= y2:
+        # Check condition x >= x1
+        if node.point[0] >= x1:
+            result.append(node.point)
+
+    # Traverse left subtree x1 <= median
+    if x1 <= node.median:
+        result.extend(PSTSearchLeft(x1, y1, y2, node.left))
+
+    # Traverse right subtree
+    result.extend(PSTSearchLeft(x1, y1, y2, node.right))
+
+    return result
+
+
+def PSTSearchRight(x2, y1, y2, node):
+    if node is None:
+        return []
+
+    result = []
+    # Check condition y1 <= y <= y2
+    if y1 <= node.point[1] <= y2:
+        # Check condition x <= x2
+        if node.point[0] <= x2:
+            result.append(node.point)
+
+    # Traverse left subtree
+    result.extend(PSTSearchRight(x2, y1, y2, node.left))
+
+    # Traverse right subtree if x2 > median
+    if x2 > node.median:
+        result.extend(PSTSearchRight(x2, y1, y2, node.right))
+
+    return result
+
+
 def PSTRangeSearch(x1, x2, y1, y2, node):
     """
     Perform a four-sided range search in a Priority Search Tree (PST).
@@ -76,26 +118,23 @@ def PSTRangeSearch(x1, x2, y1, y2, node):
         A list of points (x, y) that satisfy the range conditions.
     """
     # Base case: If the node is None, return an empty list
-    if node is None or node.point[1] < y1:
+    if node is None:
         return []
-
     # Check if the point at the node satisfies the x-range [x1, x2]
     result = []
-    if (
-        x1 <= node.point[0]
-        and node.point[0] <= x2
-        and node.point[1] >= y1
-        and node.point[1] <= y2
-    ):
-        result.append(node.point)
-
-    # Check the left and right subtrees based on the x-coordinate at this node
-    # Sometimes the medium is calculated by plus the left and right values so the node values is not the correct medium value
-    if x1 <= node.median:
-        result.extend(PSTRangeSearch(x1, x2, y1, y2, node.left))
-    if node.median <= x2:
+    if x1 <= node.point[0] and node.point[0] <= x2:
+        # If the y-coordinate of the point at the node is outside the range [y1, y2], exclude this node
+        if y1 <= node.point[1] and node.point[1] <= y2:
+            result.append(node.point)
+        if node.left.point[0] < x2:
+            result.extend(PSTSearchLeft(x1, y1, y2, node.left))
+        if node.right.point[0] > x1:
+            result.extend(PSTSearchRight(x2, y1, y2, node.right))
+    # Recursively search in left and right subtrees based on the x-range
+    elif node.point[0] < x1:  # Check right subtree
         result.extend(PSTRangeSearch(x1, x2, y1, y2, node.right))
-
+    else:  # Check right subtree
+        result.extend(PSTRangeSearch(x1, x2, y1, y2, node.left))
     return result
 
 
@@ -191,6 +230,9 @@ def test_search():
 
     queries = [
         (10, 60, 10, 40),
+        (10, 30, 5, 20),
+        (5, 20, 20, 50),
+        (0, 100, 0, 100),
     ]
 
     search_times, range_search_times, search_results, range_search_results = (
